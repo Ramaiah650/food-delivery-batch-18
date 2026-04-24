@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Stored Data</title>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: #f5f5f5; }
+        .page-head {
+            background: linear-gradient(135deg, #d32f2f 0%, #ff5722 100%);
+            color: white;
+            padding: 1.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .page-head img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .page-head h1 { margin: 0; font-size: 1.35rem; }
+        .page-head a { color: white; margin-left: auto; font-weight: 600; }
+        .wrap { max-width: 720px; margin: 0 auto; padding: 1.25rem; }
+        .data-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        .token { word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 6px; font-size: 0.85rem; }
+        pre { background: #f8f8f8; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <header class="page-head">
+        <img src="https://cdn.pixabay.com/photo/2016/11/19/15/40/fast-food-1849271_640.jpg" alt="">
+        <div>
+            <h1>Stored session data</h1>
+            <p style="margin: 0.25rem 0 0; opacity: 0.95; font-size: 0.9rem;">JWT and profile from this browser</p>
+        </div>
+        <a href="index.html">← Home</a>
+    </header>
+    <div class="wrap">
+
+    <div class="data-section">
+        <h2>JWT token</h2>
+        <div id="token" class="token">No token found</div>
+    </div>
+
+    <div class="data-section">
+        <h2>User data (localStorage)</h2>
+        <pre id="userData">No user data found</pre>
+    </div>
+
+    <div class="data-section">
+        <h2>API profile (<code>/api/auth/me</code>)</h2>
+        <div id="apiUsers">Loading…</div>
+    </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('foodHubToken');
+        const userData = localStorage.getItem('foodHubUser');
+
+        document.getElementById('token').textContent = token || 'No token found';
+        document.getElementById('userData').textContent = userData ? JSON.stringify(JSON.parse(userData), null, 2) : 'No user data found';
+
+        if (token) {
+            fetch('http://localhost:5000/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('apiUsers').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(() => {
+                document.getElementById('apiUsers').textContent = 'API not reachable or token invalid. Is the backend on port 5000?';
+            });
+        } else {
+            document.getElementById('apiUsers').textContent = 'No token — log in first.';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Menu - FoodHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .menu-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .menu-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .menu-header h2 {
+            color: #d32f2f;
+            font-size: 28px;
+            margin: 0;
+        }
+        .menu-items {
+            display: grid;
+            gap: 15px;
+        }
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .menu-item-info {
+            flex: 1;
+        }
+        .menu-item-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+        }
+        .menu-item-price {
+            color: #d32f2f;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .menu-item-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .qty-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .order-btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .order-btn:hover {
+            background: #b71c1c;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .error {
+            color: #d32f2f;
+            padding: 15px;
+            background: #ffe0e0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h1><i class="fas fa-utensils"></i> FoodHub</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#restaurants">Restaurants</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="menu-container">
+        <div class="menu-header">
+            <h2>🍽️ Food Menu</h2>
+            <p>Select items and order now</p>
+        </div>
+
+        <div id="errorMsg" class="error" style="display:none;"></div>
+        <div id="loadingMsg" class="loading">Loading menu items...</div>
+        <div id="menuItems" class="menu-items" style="display:none;"></div>
+
+        <form id="orderForm" style="display:none; margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee;">
+            <button type="submit" class="order-btn" style="width: 100%; padding: 12px; font-size: 16px;">
+                <i class="fas fa-shopping-cart"></i> Place Order
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const API_URL = `${window.location.protocol}//localhost:5000/api`;
+        let menuItems = [];
+
+        async function loadMenuItems() {
+            try {
+                const response = await fetch(`${API_URL}/menu`);
+                if (!response.ok) throw new Error('Failed to fetch menu');
+                
+                menuItems = await response.json();
+                displayMenu(menuItems);
+            } catch (error) {
+                console.error('Error loading menu:', error);
+                document.getElementById('loadingMsg').style.display = 'none';
+                document.getElementById('errorMsg').style.display = 'block';
+                document.getElementById('errorMsg').textContent = '❌ Error loading menu. Please try again.';
+            }
+        }
+
+        function displayMenu(items) {
+            const container = document.getElementById('menuItems');
+            container.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#999;">No menu items available</p>';
+                container.style.display = 'block';
+                document.getElementById('loadingMsg').style.display = 'none';
+                return;
+            }
+
+            items.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'menu-item';
+                itemEl.innerHTML = `
+                    <div class="menu-item-info">
+                        <div class="menu-item-name">${item.name || 'Unknown Item'}</div>
+                        <div class="menu-item-price">₹${item.price || 0}</div>
+                    </div>
+                    <div class="menu-item-actions">
+                        <input type="number" class="qty-input" name="qty_${item._id}" value="0" min="0">
+                        <button type="button" class="order-btn" onclick="addToCart('${item._id}', '${item.name}', ${item.price})">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                `;
+                container.appendChild(itemEl);
+            });
+
+            container.style.display = 'grid';
+            document.getElementById('loadingMsg').style.display = 'none';
+            document.getElementById('orderForm').style.display = 'block';
+        }
+
+        function addToCart(id, name, price) {
+            const qtyInput = document.querySelector(`input[name="qty_${id}"]`);
+            const quantity = parseInt(qtyInput.value) || 1;
+            
+            if (quantity > 0) {
+                alert(`✅ Added ${quantity}x ${name} to cart`);
+                qtyInput.value = 0;
+            } else {
+                alert('Please enter quantity');
+            }
+        }
+
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Order placed! Redirecting to checkout...');
+            window.location.href = 'index.html';
+        });
+
+        // Load menu on page load
+        loadMenuItems();
+    </script>
+</body>
+</html>

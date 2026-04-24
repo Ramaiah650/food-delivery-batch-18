@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Dashboard - FoodHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; font-family: 'Poppins', sans-serif; background: #f4f5f7; color: #1f2937; }
+    .top { background: linear-gradient(135deg, #d32f2f, #ff5722); color: #fff; padding: 16px 20px; }
+    .top-row { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .top a { color: #fff; text-decoration: none; font-weight: 600; }
+    .wrap { max-width: 1100px; margin: 16px auto; padding: 0 16px; }
+    .panel { background: #fff; border-radius: 12px; border: 1px solid #ececec; padding: 14px; margin-bottom: 12px; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    input { border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; font-family: inherit; }
+    button { border: none; border-radius: 8px; padding: 10px 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-primary { background: #d32f2f; color: #fff; }
+    .btn-light { background: #f1f1f1; color: #333; }
+    .list { display: grid; gap: 12px; }
+    .order { background: #fff; border-radius: 12px; border: 1px solid #e9e9e9; padding: 14px; }
+    .head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .badge { display: inline-block; font-size: 12px; border-radius: 999px; padding: 4px 10px; background: #fff3cd; color: #7a5a00; font-weight: 600; text-transform: uppercase; }
+    .status-pending { background: #fff3cd; color: #7a5a00; }
+    .status-confirmed { background: #dbeafe; color: #1e40af; }
+    .status-preparing { background: #fef3c7; color: #92400e; }
+    .status-out_for_delivery { background: #e0f2fe; color: #0369a1; }
+    .status-delivered { background: #dcfce7; color: #166534; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    .meta { font-size: 13px; color: #555; margin: 5px 0; }
+    .items { font-size: 13px; color: #333; margin: 8px 0; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .empty { text-align: center; color: #666; padding: 24px 10px; background: #fff; border-radius: 12px; border: 1px dashed #ddd; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="top-row">
+      <div>
+        <h2 style="margin:0;">Delivery Dashboard</h2>
+        <p style="margin:4px 0 0;opacity:.9;">Live order board for delivery partners</p>
+      </div>
+      <a href="index.html">Back to FoodHub</a>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="panel">
+      <div class="controls">
+        <div>
+          <label for="partnerName" style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Partner name</label>
+          <input id="partnerName" placeholder="Delivery partner name">
+        </div>
+        <div>
+          <label for="partnerPhone" style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Phone</label>
+          <input id="partnerPhone" placeholder="Phone number">
+        </div>
+        <button class="btn-primary" onclick="savePartner()">Save profile</button>
+        <button class="btn-light" onclick="loadBoard()">Refresh now</button>
+      </div>
+    </div>
+    <div id="board" class="list"></div>
+  </div>
+
+  <script>
+    const API_URL = `${window.location.protocol}//localhost:5000/api`;
+
+    function statusClass(status) {
+      return `badge status-${status || 'pending'}`;
+    }
+
+    function savePartner() {
+      const name = document.getElementById('partnerName').value.trim();
+      const phone = document.getElementById('partnerPhone').value.trim();
+      if (!name) {
+        alert('Enter partner name');
+        return;
+      }
+      localStorage.setItem('deliveryPartnerProfile', JSON.stringify({ name, phone }));
+      alert('Partner profile saved');
+    }
+
+    function loadPartner() {
+      const raw = localStorage.getItem('deliveryPartnerProfile');
+      if (!raw) return;
+      try {
+        const p = JSON.parse(raw);
+        document.getElementById('partnerName').value = p.name || '';
+        document.getElementById('partnerPhone').value = p.phone || '';
+      } catch (_) {}
+    }
+
+    async function acceptOrder(orderId) {
+      const name = document.getElementById('partnerName').value.trim();
+      const phone = document.getElementById('partnerPhone').value.trim();
+      if (!name) return alert('Set partner name first');
+      const res = await fetch(`${API_URL}/order/delivery/${orderId}/accept`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partnerName: name, partnerPhone: phone })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return alert(data.message || 'Failed to accept order');
+      loadBoard();
+    }
+
+    async function progress(orderId, action) {
+      const res = await fetch(`${API_URL}/order/delivery/${orderId}/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return alert(data.message || 'Failed to update order');
+      loadBoard();
+    }
+
+    function renderOrder(order) {
+      const id = String(order._id || '');
+      const shortId = id.slice(-8);
+      const userName = order.userId?.name || 'Customer';
+      const phone = order.customerPhone || order.userId?.phone || '-';
+      const restaurantName = order.restaurantId?.name || order.restaurantName || 'Restaurant';
+      const address = order.deliveryAddress?.street || 'Address not available';
+      const items = (order.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+      const assigned = order.deliveryPartner?.name ? `${order.deliveryPartner.name}${order.deliveryPartner.phone ? ' · ' + order.deliveryPartner.phone : ''}` : 'Not assigned';
+      return `
+        <div class="order">
+          <div class="head">
+            <strong>Order #${shortId}</strong>
+            <span class="${statusClass(order.status)}">${order.status || 'pending'}</span>
+          </div>
+          <div class="meta"><strong>${restaurantName}</strong> → ${userName}</div>
+          <div class="meta">Phone: ${phone}</div>
+          <div class="meta">Address: ${address}</div>
+          <div class="meta">Partner: ${assigned}</div>
+          <div class="items">${items || 'No items'}</div>
+          <div class="meta"><strong>Total: ₹${order.totalPrice || 0}</strong></div>
+          <div class="actions">
+            <button class="btn-primary" onclick="acceptOrder('${id}')">Accept</button>
+            <button class="btn-light" onclick="progress('${id}', 'next')">Next Stage</button>
+            <button class="btn-light" onclick="progress('${id}', 'pickup')">Picked Up</button>
+            <button class="btn-light" onclick="progress('${id}', 'delivered')">Mark Delivered</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '<div class="empty">Loading orders...</div>';
+      try {
+        const res = await fetch(`${API_URL}/order/delivery/board`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load orders');
+        if (!Array.isArray(data) || data.length === 0) {
+          board.innerHTML = '<div class="empty">No active delivery orders right now.</div>';
+          return;
+        }
+        board.innerHTML = data.map(renderOrder).join('');
+      } catch (err) {
+        board.innerHTML = `<div class="empty">Could not load board: ${err.message}</div>`;
+      }
+    }
+
+    loadPartner();
+    loadBoard();
+    setInterval(loadBoard, 15000);
+  </script>
+</body>
+</html>
