@@ -1,0 +1,14 @@
+{
+  "name": "food-delivery-app",
+  "version": "1.0.1",
+  "private": true,
+  "description": "FoodHub frontend + backend. Run npm commands from this folder (project root).",
+  "scripts": {
+    "seed": "npm run seed --prefix backend",
+    "start": "npm start --prefix backend",
+    "dev": "npm run dev --prefix backend",
+    "frontend": "npx --yes serve . -l 3000",
+    "free-port": "npx --yes kill-port 5000",
+    "backend": "npm start --prefix backend"
+  }
+}
