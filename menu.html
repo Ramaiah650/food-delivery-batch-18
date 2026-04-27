@@ -119,7 +119,14 @@
     </div>
 
     <script>
-        const API_URL = `${window.location.protocol}//localhost:5000/api`;
+        function resolveApiBase() {
+            const override = (window.FOODHUB_API_BASE || localStorage.getItem('foodHubApiBase') || '').trim();
+            if (override) return override.replace(/\/+$/, '');
+            const isLocal = window.location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            return isLocal ? 'http://localhost:3000' : window.location.origin;
+        }
+
+        const API_URL = `${resolveApiBase()}/api`;
         let menuItems = [];
 
         async function loadMenuItems() {

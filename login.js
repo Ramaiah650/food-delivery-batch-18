@@ -1,6 +1,13 @@
 console.log('✅ login.js loaded');
 
-const API_BASE = 'http://localhost:5000';
+function resolveApiBase() {
+    const override = (window.FOODHUB_API_BASE || localStorage.getItem('foodHubApiBase') || '').trim();
+    if (override) return override.replace(/\/+$/, '');
+    const isLocal = window.location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    return isLocal ? 'http://localhost:3000' : window.location.origin;
+}
+
+const API_BASE = resolveApiBase();
 
 // Toggle forms
 function toggleForm() {

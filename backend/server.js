@@ -13,6 +13,8 @@ const menuRoutes = require('./routes/menu');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+const PORT = Number(process.env.PORT) || 3000;
+const IS_VERCEL = process.env.VERCEL === '1';
 
 // Middleware
 app.use(cors({
@@ -39,26 +41,35 @@ app.use('/api/menu', menuRoutes);
 app.use(errorHandler);
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/fooddelivery')
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+const connectMongo = async () => {
+  if (mongoose.connection.readyState !== 0) return;
+  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/fooddelivery';
+  await mongoose.connect(mongoUri);
+  console.log('MongoDB connected');
+};
 
-const PORT = Number(process.env.PORT) || 3000;
-
-const server = app.listen(PORT, 'localhost', () => {
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 API: http://localhost:${PORT}/api`);
-  console.log(`💚 Health: http://localhost:${PORT}/health\n`);
+connectMongo().catch((err) => {
+  console.error('MongoDB connection error:', err.message);
 });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(
-      `\nPort ${PORT} is already in use (another Node server is probably still running).\n` +
-      `Fix: run  npm run free-port  (works from this backend folder or from the project root)\n` +
-      `Then run again:  npm start\n`
-    );
-    process.exit(1);
-  }
-  throw err;
-});
+if (!IS_VERCEL) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📊 API: http://localhost:${PORT}/api`);
+    console.log(`💚 Health: http://localhost:${PORT}/health\n`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `\nPort ${PORT} is already in use (another Node server is probably still running).\n` +
+        `Fix: run  npm run free-port  (works from this backend folder or from the project root)\n` +
+        `Then run again:  npm start\n`
+      );
+      process.exit(1);
+    }
+    throw err;
+  });
+}
+
+module.exports = app;

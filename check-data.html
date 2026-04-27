@@ -52,6 +52,14 @@
     </div>
 
     <script>
+        function resolveApiBase() {
+            const override = (window.FOODHUB_API_BASE || localStorage.getItem('foodHubApiBase') || '').trim();
+            if (override) return override.replace(/\/+$/, '');
+            const isLocal = window.location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            return isLocal ? 'http://localhost:3000' : window.location.origin;
+        }
+
+        const API_URL = `${resolveApiBase()}/api`;
         const token = localStorage.getItem('foodHubToken');
         const userData = localStorage.getItem('foodHubUser');
 
@@ -59,7 +67,7 @@
         document.getElementById('userData').textContent = userData ? JSON.stringify(JSON.parse(userData), null, 2) : 'No user data found';
 
         if (token) {
-            fetch('http://localhost:5000/api/auth/me', {
+            fetch(`${API_URL}/auth/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             .then(res => res.json())
@@ -67,7 +75,7 @@
                 document.getElementById('apiUsers').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
             })
             .catch(() => {
-                document.getElementById('apiUsers').textContent = 'API not reachable or token invalid. Is the backend on port 5000?';
+                document.getElementById('apiUsers').textContent = 'API not reachable or token invalid. Check backend is running and token is valid.';
             });
         } else {
             document.getElementById('apiUsers').textContent = 'No token — log in first.';
