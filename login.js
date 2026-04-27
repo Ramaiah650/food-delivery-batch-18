@@ -9,6 +9,19 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 
+async function parseApiResponse(response) {
+    const raw = await response.text();
+    try {
+        return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+        if (!response.ok) {
+            const preview = (raw || '').slice(0, 120).trim();
+            throw new Error(preview || `Request failed with status ${response.status}`);
+        }
+        return {};
+    }
+}
+
 // Toggle forms
 function toggleForm() {
     const loginForm = document.getElementById('loginForm');
@@ -51,7 +64,7 @@ async function handleLogin(e) {
             body: JSON.stringify({ email, password })
         });
 
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         if (!response.ok) throw new Error(data.message || 'Login failed');
 
         localStorage.setItem('foodHubToken', data.token);
@@ -86,7 +99,7 @@ async function handleSignup(e) {
             body: JSON.stringify({ name, email, password, phone, address })
         });
 
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         if (!response.ok) throw new Error(data.message || 'Signup failed');
 
         localStorage.setItem('foodHubToken', data.token);

@@ -43,7 +43,7 @@ app.use(errorHandler);
 // Connect to MongoDB
 const connectMongo = async () => {
   if (mongoose.connection.readyState !== 0) return;
-  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/fooddelivery';
+  const mongoUri = process.env.MONGO_URI || 'mongodb+srv://pattabhi276_db_user:pattabhi%40123@cluster0.gejznut.mongodb.net/fooddelivery?retryWrites=true&w=majority&appName=Cluster0';
   await mongoose.connect(mongoUri);
   console.log('MongoDB connected');
 };
