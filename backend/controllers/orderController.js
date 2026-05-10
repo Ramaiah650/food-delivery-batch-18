@@ -60,7 +60,7 @@ const placeOrder = async (req, res) => {
 
     const FREE_DELIVERY_MIN = 300;
     const tax = Math.round(subtotal * 0.05);
-    const platformFee = subtotal > 0 ? 2 : 0;
+    const platformFee = 0;
     const deliveryFee =
       subtotal >= FREE_DELIVERY_MIN ? 0 : (restaurant?.deliveryFee ?? 40);
     const discount = 0;
